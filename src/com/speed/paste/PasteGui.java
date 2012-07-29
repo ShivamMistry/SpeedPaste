@@ -17,13 +17,14 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -31,6 +32,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -44,7 +46,6 @@ import javax.swing.UIManager;
 import javax.xml.bind.DatatypeConverter;
 
 import com.speed.paste.providers.Cafenull;
-import com.speed.paste.providers.Pastebin;
 import com.speed.paste.providers.SfpPaste;
 
 /**
@@ -108,7 +109,7 @@ public class PasteGui {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-		dataDir = createDataDir();
+		dataDir = (createDataDir());
 		try {
 			pasteImage = ImageIO.read(new ByteArrayInputStream(
 					DatatypeConverter.parseBase64Binary(PASTE_32)));
@@ -147,10 +148,15 @@ public class PasteGui {
 		if (!file.exists()) {
 			file.mkdirs();
 		}
+		File history = new File(file.getAbsolutePath() + File.separator
+				+ "history");
 		File services = new File(file.getAbsolutePath() + File.separator
 				+ "services");
 		if (!services.exists()) {
 			services.mkdir();
+		}
+		if (!history.exists()) {
+			history.mkdir();
 		}
 		return file;
 	}
@@ -170,7 +176,6 @@ public class PasteGui {
 				e.printStackTrace();
 			}
 		ActionListener trayListen = new ActionListener() {
-			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (e.getSource() instanceof MenuItem) {
 					MenuItem item = (MenuItem) e.getSource();
@@ -200,16 +205,17 @@ public class PasteGui {
 			e1.printStackTrace();
 		}
 		for (final PasteService s : services) {
+			s.readHistory();
 			MenuItem i = new MenuItem(s.toString());
 			i.addActionListener(new ActionListener() {
 
-				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					String data = getClipboard();
 					if (data.isEmpty()) {
 						return;
 					}
 					final String url = s.paste(data);
+					s.writeHistory(url, System.currentTimeMillis());
 					Toolkit.getDefaultToolkit().getSystemClipboard()
 							.setContents(new StringSelection(url), null);
 				}
@@ -220,6 +226,7 @@ public class PasteGui {
 		menu.add(item);
 		menu.add(exitItem);
 		icon.setPopupMenu(menu);
+
 		initialise();
 	}
 
@@ -235,8 +242,8 @@ public class PasteGui {
 				e.printStackTrace();
 			}
 		}
-		final File data = new File(dataDir.getAbsolutePath() + File.separator
-				+ "services");
+		final File data = new File(getDataDir().getAbsolutePath()
+				+ File.separator + "services");
 		loadProviders(data, data);
 	}
 
@@ -276,8 +283,8 @@ public class PasteGui {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-
-				} catch (MalformedURLException e) {
+					loader.close();
+				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
@@ -337,7 +344,7 @@ public class PasteGui {
 		JPanel pastePanel = new JPanel();
 		pasteFrame.getContentPane().add(pastePanel);
 		pastePanel.setLayout(new GridLayout(0, 1, 0, 0));
-
+		pastePanel.setBorder(BorderFactory.createLoweredBevelBorder());
 		JScrollPane scrollPane = new JScrollPane();
 		pastePanel.add(scrollPane);
 
@@ -345,7 +352,30 @@ public class PasteGui {
 		scrollPane.setViewportView(pasteText);
 		pasteText.setToolTipText("Enter text to send to paste site here");
 		pasteText.setText("Enter paste text");
+		pasteText.addMouseListener(new MouseListener() {
 
+			public void mouseReleased(MouseEvent e) {
+
+			}
+
+			public void mousePressed(MouseEvent e) {
+
+			}
+
+			public void mouseExited(MouseEvent e) {
+
+			}
+
+			public void mouseEntered(MouseEvent e) {
+
+			}
+
+			public void mouseClicked(MouseEvent arg0) {
+				if (pasteText.getText().equals("Enter paste text")) {
+					pasteText.setText("");
+				}
+			}
+		});
 		JPanel optionsPanel = new JPanel();
 		pasteFrame.getContentPane().add(optionsPanel);
 		GridBagLayout gbl_optionsPanel = new GridBagLayout();
@@ -381,18 +411,18 @@ public class PasteGui {
 		comboBox.setModel(new DefaultComboBoxModel(services.toArray()));
 		comboBox.setSelectedIndex(0);
 		GridBagConstraints gbc_comboBox = new GridBagConstraints();
-		gbc_comboBox.gridwidth = 2;
+		gbc_comboBox.gridwidth = 3;
 		gbc_comboBox.insets = new Insets(0, 0, 5, 0);
 		gbc_comboBox.fill = GridBagConstraints.HORIZONTAL;
-		gbc_comboBox.gridx = 1;
+		gbc_comboBox.gridx = 0;
 		gbc_comboBox.gridy = 0;
 		optionsPanel.add(comboBox, gbc_comboBox);
 
 		JScrollPane scrollPane_1 = new JScrollPane();
 		scrollPane_1
-				.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+				.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 		scrollPane_1
-				.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+				.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		GridBagConstraints gbc_scrollPane_1 = new GridBagConstraints();
 		gbc_scrollPane_1.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane_1.gridwidth = 3;
@@ -422,18 +452,41 @@ public class PasteGui {
 				for (PasteService serv : services) {
 					if (serv.toString().equals(sel)) {
 						final String url = serv.paste(pasteText.getText());
+						serv.writeHistory(url, System.currentTimeMillis());
 						textField.setText(url);
+
 					}
 				}
 			}
 
 		});
+		JButton btnHistory = new JButton("History");
+		btnHistory.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent arg0) {
+				String sel = comboBox.getSelectedItem().toString();
+				for (PasteService serv : services) {
+					if (serv.toString().equals(sel)) {
+						new PasteHistoryDialog(serv);
+					}
+				}
+			}
+		});
+		GridBagConstraints gbc_btnHistory = new GridBagConstraints();
+		gbc_btnHistory.gridx = 0;
+		gbc_btnHistory.gridy = 3;
+		optionsPanel.add(btnHistory, gbc_btnHistory);
 		GridBagConstraints gbc_btnPaste = new GridBagConstraints();
 		gbc_btnPaste.gridx = 2;
 		gbc_btnPaste.gridy = 3;
 		optionsPanel.add(btnPaste, gbc_btnPaste);
 		pasteFrame.setLocationRelativeTo(null);
 		pasteFrame.pack();
+		btnPaste.requestFocusInWindow();
+	}
+
+	public static File getDataDir() {
+		return dataDir;
 	}
 
 }
