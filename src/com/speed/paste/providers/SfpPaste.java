@@ -45,9 +45,14 @@ public class SfpPaste extends PasteService {
 
 	private JComboBox highlighting;
 	private JCheckBox privCheck;
+	private JComboBox pasteExpiry;
 	private static final String[] HIGHLIGHT_LANGS = new String[] { "C++", "C#",
 			"CSS", "Delphi", "Groovy", "Java", "JavaScript", "Perl", "PHP",
 			"Plain text", "Python", "Ruby", "SQL", "Visual Basic", "XML/HTML" };
+	private static final String[] PASTE_EXPIRY_NAMES = new String[] { "Never",
+			"10 Minutes", "1 Hour", "1 Day", "1 Month" };
+	private static final long[] PASTE_EXPIRY_VALUES = new long[] { 0L, 600L,
+			360000L, 8640000L, 259200000L };
 
 	public SfpPaste() {
 		privCheck = new JCheckBox("Private");
@@ -58,11 +63,12 @@ public class SfpPaste extends PasteService {
 
 	public void addComps(final JPanel contentPanel) {
 		GridBagLayout gbl_contentPanel = new GridBagLayout();
-		gbl_contentPanel.columnWidths = new int[] { 106, 75, 0 };
-		gbl_contentPanel.rowHeights = new int[] { 23, 0, 0 };
-		gbl_contentPanel.columnWeights = new double[] { 0.0, 1.0,
+		gbl_contentPanel.columnWidths = new int[] { 106, 75, 0, 0 };
+		gbl_contentPanel.rowHeights = new int[] { 23, 0, 0, 0 };
+		gbl_contentPanel.columnWeights = new double[] { 0.0, 1.0, 1.0,
 				Double.MIN_VALUE };
-		gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		gbl_contentPanel.rowWeights = new double[] { 1.0, 1.0, 1.0,
+				Double.MIN_VALUE };
 		contentPanel.setLayout(gbl_contentPanel);
 		{
 			if (privCheck == null)
@@ -86,10 +92,8 @@ public class SfpPaste extends PasteService {
 		{
 			if (highlighting == null) {
 				highlighting = new JComboBox();
-				highlighting.setModel(new DefaultComboBoxModel(new String[] {
-						"C++", "C#", "CSS", "Delphi", "Groovy", "Java",
-						"JavaScript", "Perl", "PHP", "Plain text", "Python",
-						"Ruby", "SQL", "Visual Basic", "XML/HTML" }));
+				highlighting
+						.setModel(new DefaultComboBoxModel(HIGHLIGHT_LANGS));
 				highlighting.setSelectedIndex(5);
 			}
 			GridBagConstraints gbc_highlighting = new GridBagConstraints();
@@ -98,6 +102,28 @@ public class SfpPaste extends PasteService {
 			gbc_highlighting.gridx = 1;
 			gbc_highlighting.gridy = 1;
 			contentPanel.add(highlighting, gbc_highlighting);
+		}
+		{
+			JLabel lblExp = new JLabel("Expiry:");
+			GridBagConstraints gbc_lblExp = new GridBagConstraints();
+			gbc_lblExp.anchor = GridBagConstraints.FIRST_LINE_START;
+			gbc_lblExp.insets = new Insets(6, 0, 0, 5);
+			gbc_lblExp.gridx = 0;
+			gbc_lblExp.gridy = 2;
+			contentPanel.add(lblExp, gbc_lblExp);
+		}
+		{
+			if (pasteExpiry == null) {
+				pasteExpiry = new JComboBox(new DefaultComboBoxModel(
+						PASTE_EXPIRY_NAMES));
+				pasteExpiry.setSelectedIndex(0);
+			}
+			GridBagConstraints gbc_paste_expiry = new GridBagConstraints();
+			gbc_paste_expiry.weightx = 1;
+			gbc_paste_expiry.fill = GridBagConstraints.REMAINDER;
+			gbc_paste_expiry.gridx = 1;
+			gbc_paste_expiry.gridy = 2;
+			contentPanel.add(pasteExpiry, gbc_paste_expiry);
 		}
 	}
 
@@ -122,10 +148,12 @@ public class SfpPaste extends PasteService {
 			BufferedWriter write = new BufferedWriter(new OutputStreamWriter(
 					conn.getOutputStream()));
 			write.write(String.format(
-					privCheck.isSelected() ? "paste=%s&language=%s&submit=%s&private=%s"
-							: "paste=%s&language=%s&submit=%s", encoded,
-					highlighting.getSelectedItem().toString().toLowerCase(),
-					"Paste", "Private"));
+					privCheck.isSelected() ? "paste=%s&language=%s&submit=%s&expires=%d&private=%s"
+							: "paste=%s&language=%s&submit=%s&expires=%d",
+					encoded, highlighting.getSelectedItem().toString()
+							.toLowerCase(), "Paste",
+					PASTE_EXPIRY_VALUES[pasteExpiry.getSelectedIndex()],
+					"Private"));
 			write.flush();
 			write.close();
 			conn.getInputStream().read();
