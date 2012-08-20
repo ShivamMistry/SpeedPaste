@@ -138,20 +138,16 @@ public class PasteGui {
 		String os_name = System.getProperty("os.name");
 		File file;
 		if (os_name.toLowerCase().startsWith("windows")) {
-			file = new File(System.getenv("APPDATA") + File.separator
-					+ "SpeedPaste" + File.separator);
+			file = new File(System.getenv("APPDATA"), "SpeedPaste");
 
 		} else {
-			file = new File(System.getProperty("user.home") + File.separator
-					+ ".SpeedPaste" + File.separator);
+			file = new File(System.getProperty("user.home"), ".SpeedPaste");
 		}
 		if (!file.exists()) {
 			file.mkdirs();
 		}
-		File history = new File(file.getAbsolutePath() + File.separator
-				+ "history");
-		File services = new File(file.getAbsolutePath() + File.separator
-				+ "services");
+		File history = new File(file, "history");
+		File services = new File(file, "services");
 		if (!services.exists()) {
 			services.mkdir();
 		}
@@ -167,7 +163,7 @@ public class PasteGui {
 	public PasteGui() {
 
 		// create tray icon
-		if (SystemTray.isSupported())
+		if (SystemTray.isSupported()) {
 			try {
 				icon = new TrayIcon(PasteGui.pasteImage);
 				SystemTray.getSystemTray().add(icon);
@@ -175,58 +171,62 @@ public class PasteGui {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		ActionListener trayListen = new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				if (e.getSource() instanceof MenuItem) {
-					MenuItem item = (MenuItem) e.getSource();
-					if (item.getLabel().equals("Show/Hide GUI")) {
+			ActionListener trayListen = new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					if (e.getSource() instanceof MenuItem) {
+						MenuItem item = (MenuItem) e.getSource();
+						if (item.getLabel().equals("Show/Hide GUI")) {
+							pasteFrame.setVisible(!pasteFrame.isVisible());
+						} else if (item.getLabel().equals("Exit")) {
+							PasteGui.this.pasteFrame.dispose();
+							SystemTray.getSystemTray().remove(
+									PasteGui.this.icon);
+						}
+					} else if (e.getSource() instanceof TrayIcon) {
 						pasteFrame.setVisible(!pasteFrame.isVisible());
-					} else if (item.getLabel().equals("Exit")) {
-						PasteGui.this.pasteFrame.dispose();
-						SystemTray.getSystemTray().remove(PasteGui.this.icon);
-					}
-				} else if (e.getSource() instanceof TrayIcon) {
-					pasteFrame.setVisible(!pasteFrame.isVisible());
-					if (!pasteFrame.isFocusOwner() && pasteFrame.isVisible()) {
-						pasteFrame.requestFocus();
+						if (!pasteFrame.isFocusOwner()
+								&& pasteFrame.isVisible()) {
+							pasteFrame.requestFocus();
+						}
 					}
 				}
+
+			};
+			icon.addActionListener(trayListen);
+
+			MenuItem item = new MenuItem("Show/Hide GUI"), exitItem = new MenuItem(
+					"Exit");
+			item.addActionListener(trayListen);
+			exitItem.addActionListener(trayListen);
+
+			try {
+				loadProviders();
+			} catch (URISyntaxException e1) {
+				e1.printStackTrace();
 			}
+			for (final PasteService s : services) {
+				s.readHistory();
+				MenuItem i = new MenuItem(s.toString());
+				i.addActionListener(new ActionListener() {
 
-		};
-		icon.addActionListener(trayListen);
-		MenuItem item = new MenuItem("Show/Hide GUI"), exitItem = new MenuItem(
-				"Exit");
-		item.addActionListener(trayListen);
-		exitItem.addActionListener(trayListen);
-		try {
-			loadProviders();
-		} catch (URISyntaxException e1) {
-			e1.printStackTrace();
-		}
-		for (final PasteService s : services) {
-			s.readHistory();
-			MenuItem i = new MenuItem(s.toString());
-			i.addActionListener(new ActionListener() {
-
-				public void actionPerformed(ActionEvent arg0) {
-					String data = getClipboard();
-					if (data.isEmpty()) {
-						return;
+					public void actionPerformed(ActionEvent arg0) {
+						String data = getClipboard();
+						if (data.isEmpty()) {
+							return;
+						}
+						final String url = s.paste(data);
+						s.writeHistory(url, System.currentTimeMillis());
+						Toolkit.getDefaultToolkit().getSystemClipboard()
+								.setContents(new StringSelection(url), null);
 					}
-					final String url = s.paste(data);
-					s.writeHistory(url, System.currentTimeMillis());
-					Toolkit.getDefaultToolkit().getSystemClipboard()
-							.setContents(new StringSelection(url), null);
-				}
 
-			});
-			menu.add(i);
+				});
+				menu.add(i);
+			}
+			menu.add(item);
+			menu.add(exitItem);
+			icon.setPopupMenu(menu);
 		}
-		menu.add(item);
-		menu.add(exitItem);
-		icon.setPopupMenu(menu);
-
 		initialise();
 	}
 
@@ -235,15 +235,19 @@ public class PasteGui {
 		for (Class<? extends PasteService> c : DEFAULT_PROVIDERS) {
 			try {
 				PasteService service = c.newInstance();
-				services.add(service);
+				if (PasteService.class.isAssignableFrom(c)
+						&& (c.getModifiers() & Modifier.ABSTRACT) == 0) {
+					ServiceInfo info = c.getAnnotation(ServiceInfo.class);
+					if (!info.hidden())
+						services.add(service);
+				}
 			} catch (InstantiationException e) {
 				e.printStackTrace();
 			} catch (IllegalAccessException e) {
 				e.printStackTrace();
 			}
 		}
-		final File data = new File(getDataDir().getAbsolutePath()
-				+ File.separator + "services");
+		final File data = new File(getDataDir(), "services");
 		loadProviders(data, data);
 	}
 

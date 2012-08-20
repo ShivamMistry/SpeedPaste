@@ -23,7 +23,7 @@ import javax.swing.JPanel;
 import com.speed.paste.ServiceInfo;
 import com.speed.paste.PasteService;
 
-@ServiceInfo(name = "Cafenull", url = "http://paste.cafenull.com")
+@ServiceInfo(name = "Cafenull", url = "http://paste.cafenull.com", hidden = true)
 public class Cafenull extends PasteService {
 	private final static String[] HIGHLIGHT_LANGS = new String[] { "C", "C++",
 			"C#", "CSS", "HTML", "Java", "Javascript", "Perl", "PHP", "Python",
