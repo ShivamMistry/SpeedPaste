@@ -23,7 +23,11 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Modifier;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -38,6 +42,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JEditorPane;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
@@ -79,7 +84,7 @@ public class PasteGui {
 	private PopupMenu menu;
 	private static File dataDir;
 	private static Image pasteImage;
-
+	private static Image trayImage;
 	@SuppressWarnings("unchecked")
 	/*
 	 * Pastebin provider hasn't been written yet.
@@ -113,6 +118,10 @@ public class PasteGui {
 		try {
 			pasteImage = ImageIO.read(new ByteArrayInputStream(
 					DatatypeConverter.parseBase64Binary(PASTE_32)));
+			trayImage = pasteImage // basically most trays wont supports 32x32
+									// icons anyway
+					.getScaledInstance(16, 16, Image.SCALE_SMOOTH);
+
 		} catch (IOException e2) {
 			e2.printStackTrace();
 		}
@@ -132,15 +141,77 @@ public class PasteGui {
 				}
 			}
 		});
+		addToStartup();
+	}
+
+	private static void addToStartup() {
+		if (runningFromJar()
+				&& System.getProperty("os.name").toLowerCase()
+						.startsWith("windows")) {
+			File startupConfirm = new File(dataDir, "startup");
+			if (!startupConfirm.exists()) {
+				boolean start = JOptionPane.showConfirmDialog(null,
+						"Start SpeedPaste on login?", "Initial Setup",
+						JOptionPane.YES_NO_OPTION) == 0;
+				if (start) {
+					File file = getFile();
+					File startUpdir = new File(System.getenv("APPDATA")
+							+ File.separator + "Microsoft" + File.separator
+							+ "Windows" + File.separator + "Start Menu"
+							+ File.separator + "Programs" + File.separator
+							+ "Startup");
+					boolean cont = true;
+					if (!startUpdir.exists()) {
+						cont = startUpdir.mkdirs();
+					}
+					if (cont) {
+						File f = new File(startUpdir, "SpeedPaste.jar");
+						try {
+							InputStream in = new FileInputStream(file);
+							OutputStream out = new FileOutputStream(f);
+							byte[] buffer = new byte[1024];
+							int read;
+							while ((read = in.read(buffer)) != -1) {
+								out.write(buffer, 0, read);
+							}
+							in.close();
+							out.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+
+					}
+				}
+
+				try {
+					startupConfirm.createNewFile();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+			}
+		}
+	}
+
+	private static File getFile() {
+		return new File(PasteGui.class.getProtectionDomain().getCodeSource()
+				.getLocation().getFile());
+	}
+
+	private static boolean runningFromJar() {
+		return PasteGui.class.getProtectionDomain().getCodeSource()
+				.getLocation().getFile().endsWith(".jar");
 	}
 
 	private static File createDataDir() {
 		String os_name = System.getProperty("os.name");
 		File file;
 		if (os_name.toLowerCase().startsWith("windows")) {
+			// basically just windows, should work for XP and higher
 			file = new File(System.getenv("APPDATA"), "SpeedPaste");
 
 		} else {
+			// linux, mac, bsd etc should be a hidden file
 			file = new File(System.getProperty("user.home"), ".SpeedPaste");
 		}
 		if (!file.exists()) {
@@ -165,7 +236,7 @@ public class PasteGui {
 		// create tray icon
 		if (SystemTray.isSupported()) {
 			try {
-				icon = new TrayIcon(PasteGui.pasteImage);
+				icon = new TrayIcon(PasteGui.trayImage);
 				SystemTray.getSystemTray().add(icon);
 				menu = new PopupMenu();
 			} catch (Exception e) {
