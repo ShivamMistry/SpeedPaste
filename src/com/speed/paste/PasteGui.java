@@ -286,9 +286,14 @@ public class PasteGui {
 							return;
 						}
 						final String url = s.paste(data);
-						s.writeHistory(url, System.currentTimeMillis());
-						Toolkit.getDefaultToolkit().getSystemClipboard()
-								.setContents(new StringSelection(url), null);
+						if (url != null && !url.isEmpty()) {
+							s.writeHistory(url, System.currentTimeMillis());
+							icon.displayMessage("Paste sent!", url,
+									TrayIcon.MessageType.INFO);
+							Toolkit.getDefaultToolkit()
+									.getSystemClipboard()
+									.setContents(new StringSelection(url), null);
+						}
 					}
 
 				});
