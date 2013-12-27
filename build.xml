@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="speedpaste" default="all">
+  <property name="skip.tests" value="true"/>
+  <!-- Compiler options -->
+  
+  <property name="compiler.debug" value="on"/>
+  <property name="compiler.generate.no.warnings" value="off"/>
+  <property name="compiler.args" value=""/>
+  <property name="compiler.max.memory" value="128m"/>
+  <patternset id="ignored.files">
+    <exclude name="**/CVS/**"/>
+    <exclude name="**/SCCS/**"/>
+    <exclude name="**/RCS/**"/>
+    <exclude name="**/rcs/**"/>
+    <exclude name="**/.DS_Store/**"/>
+    <exclude name="**/.svn/**"/>
+    <exclude name="**/.pyc/**"/>
+    <exclude name="**/.pyo/**"/>
+    <exclude name="**/*.pyc/**"/>
+    <exclude name="**/*.pyo/**"/>
+    <exclude name="**/.git/**"/>
+    <exclude name="**/*.hprof/**"/>
+    <exclude name="**/_svn/**"/>
+    <exclude name="**/.hg/**"/>
+    <exclude name="**/*.lib/**"/>
+    <exclude name="**/*~/**"/>
+    <exclude name="**/__pycache__/**"/>
+    <exclude name="**/.bundle/**"/>
+    <exclude name="**/*.rbc/**"/>
+    <exclude name="**/vssver.scc/**"/>
+    <exclude name="**/vssver2.scc/**"/>
+    <exclude name="**/*.o/**"/>
+    <exclude name="**/*.obj/**"/>
+  </patternset>
+  <patternset id="library.patterns">
+    <include name="*.war"/>
+    <include name="*.ear"/>
+    <include name="*.apk"/>
+    <include name="*.zip"/>
+    <include name="*.swc"/>
+    <include name="*.ane"/>
+    <include name="*.egg"/>
+    <include name="*.jar"/>
+  </patternset>
+  <patternset id="compiler.resources">
+    <exclude name="**/?*.java"/>
+    <exclude name="**/?*.form"/>
+    <exclude name="**/?*.class"/>
+    <exclude name="**/?*.groovy"/>
+    <exclude name="**/?*.scala"/>
+    <exclude name="**/?*.flex"/>
+    <exclude name="**/?*.kt"/>
+    <exclude name="**/?*.clj"/>
+  </patternset>
+  
+  
+  <!-- Global Libraries -->
+  
+  <!-- Modules -->
+  
+  
+  <!-- Module SpeedPaste -->
+  
+  <dirname property="module.speedpaste.basedir" file="${ant.file}"/>
+  
+  
+  
+  <property name="compiler.args.speedpaste" value="${compiler.args}"/>
+  
+  <property name="speedpaste.output.dir" value="${module.speedpaste.basedir}/out/production/SpeedPaste"/>
+  <property name="speedpaste.testoutput.dir" value="${module.speedpaste.basedir}/out/test/SpeedPaste"/>
+  
+  <path id="speedpaste.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="speedpaste.module.production.classpath"/>
+  
+  <path id="speedpaste.runtime.production.module.classpath">
+    <pathelement location="${speedpaste.output.dir}"/>
+  </path>
+  
+  <path id="speedpaste.module.classpath">
+    <pathelement location="${speedpaste.output.dir}"/>
+  </path>
+  
+  <path id="speedpaste.runtime.module.classpath">
+    <pathelement location="${speedpaste.testoutput.dir}"/>
+    <pathelement location="${speedpaste.output.dir}"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.speedpaste">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.speedpaste">
+    <patternset refid="excluded.from.module.speedpaste"/>
+  </patternset>
+  
+  <path id="speedpaste.module.sourcepath">
+    <dirset dir="${module.speedpaste.basedir}">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.speedpaste" depends="compile.module.speedpaste.production,compile.module.speedpaste.tests" description="Compile module SpeedPaste"/>
+  
+  <target name="compile.module.speedpaste.production" description="Compile module SpeedPaste; production classes">
+    <mkdir dir="${speedpaste.output.dir}"/>
+    <javac destdir="${speedpaste.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+      <compilerarg line="${compiler.args.speedpaste}"/>
+      <bootclasspath refid="speedpaste.module.bootclasspath"/>
+      <classpath refid="speedpaste.module.production.classpath"/>
+      <src refid="speedpaste.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.speedpaste"/>
+    </javac>
+    
+    <copy todir="${speedpaste.output.dir}">
+      <fileset dir="${module.speedpaste.basedir}/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.speedpaste.tests" depends="compile.module.speedpaste.production" description="compile module SpeedPaste; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.speedpaste" description="cleanup module">
+    <delete dir="${speedpaste.output.dir}"/>
+    <delete dir="${speedpaste.testoutput.dir}"/>
+  </target>
+  
+  <target name="init" description="Build initialization">
+    <!-- Perform any build initialization in this target -->
+  </target>
+  
+  <target name="clean" depends="clean.module.speedpaste" description="cleanup all"/>
+  
+  <target name="build.modules" depends="init, clean, compile.module.speedpaste" description="build all modules"/>
+  
+  <target name="init.artifacts">
+    <property name="artifacts.temp.dir" value="${basedir}/__artifacts_temp"/>
+    <property name="artifact.output.speedpaste:jar" value="${basedir}/build"/>
+    <mkdir dir="${artifacts.temp.dir}"/>
+    <property name="temp.jar.path.SpeedPaste.jar" value="${artifacts.temp.dir}/SpeedPaste.jar"/>
+  </target>
+  
+  <target name="artifact.speedpaste:jar" depends="init.artifacts, compile.module.speedpaste" description="Build &#39;SpeedPaste:jar&#39; artifact">
+    <property name="artifact.temp.output.speedpaste:jar" value="${artifacts.temp.dir}/SpeedPaste_jar"/>
+    <mkdir dir="${artifact.temp.output.speedpaste:jar}"/>
+    <jar destfile="${temp.jar.path.SpeedPaste.jar}" duplicate="preserve" filesetmanifest="mergewithoutmain">
+      <zipfileset dir="${speedpaste.output.dir}"/>
+    </jar>
+    <copy file="${temp.jar.path.SpeedPaste.jar}" tofile="${artifact.temp.output.speedpaste:jar}/SpeedPaste.jar"/>
+  </target>
+  
+  <target name="build.all.artifacts" depends="artifact.speedpaste:jar" description="Build all artifacts">
+    <mkdir dir="${artifact.output.speedpaste:jar}"/>
+    <copy todir="${artifact.output.speedpaste:jar}">
+      <fileset dir="${artifact.temp.output.speedpaste:jar}"/>
+    </copy>
+    
+    <!-- Delete temporary files -->
+    <delete dir="${artifacts.temp.dir}"/>
+  </target>
+  
+  <target name="all" depends="build.modules, build.all.artifacts" description="build all"/>
+</project>
